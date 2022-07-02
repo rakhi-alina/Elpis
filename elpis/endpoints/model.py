@@ -1,170 +1,166 @@
+from typing import Callable, Dict
 from flask import request, current_app as app, jsonify
 from ..blueprint import Blueprint
+from loguru import logger
 import subprocess
-from elpis.wrappers.objects.interface import KaldiInterface
-from elpis.wrappers.objects.model import Model
-from elpis.wrappers.objects.dataset import Dataset
-from elpis.wrappers.objects.pron_dict import PronDict
+from elpis.engines.common.objects.model import Model
+from elpis.engines.common.errors import InterfaceError
 
-from pathlib import Path
+MISSING_MODEL_MESSAGE = "No current model exists (perhaps create one first)"
+MISSING_MODEL_RESPONSE = {"status": 404, "data": MISSING_MODEL_MESSAGE}
+
+MISSING_LOG_MESSAGE = "No log file was found, couldn't parse the results"
+MISSING_LOG_RESPONSE = {"status": 404, "data": MISSING_LOG_MESSAGE}
 
 bp = Blueprint("model", __name__, url_prefix="/model")
 
 
 def run(cmd: str) -> str:
     import shlex
+
     """Captures stdout/stderr and writes it to a log file, then returns the
     CompleteProcess result object"""
     args = shlex.split(cmd)
     process = subprocess.run(
-        args,
-        check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT
+        args, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
     )
     return process.stdout
 
 
-@bp.route("/new", methods=['POST'])
+@bp.route("/new", methods=["POST"])
 def new():
-    kaldi: KaldiInterface = app.config['INTERFACE']
-    model = kaldi.new_model(request.json["name"])
-    # use the selected pron dict
-    pron_dict = kaldi.get_pron_dict(request.json['pron_dict_name'])
-    # get its dataset
-    dataset = kaldi.get_dataset(pron_dict.dataset.name)
-    app.config['CURRENT_DATASET'] = dataset
-    app.config['CURRENT_PRON_DICT'] = pron_dict
-    model.link(dataset, pron_dict)
-    model.build_kaldi_structure()
-    app.config['CURRENT_MODEL'] = model
-    data = {
-        "config": model.config._load()
-    }
-    return jsonify({
-        "status": 200,
-        "data": data
-    })
+    interface = app.config["INTERFACE"]
+    try:
+        model = interface.new_model(request.json["name"])
+        logger.info(f"New model created {model.name} {model.hash}")
+    except InterfaceError as e:
+        return jsonify({"status": 500, "error": e.human_message})
+    dataset = interface.get_dataset(request.json["dataset_name"])
+    model.link_dataset(dataset)
+    app.config["CURRENT_DATASET"] = dataset
+    if "engine" in request.json and request.json["engine"] == "kaldi":
+        pron_dict = interface.get_pron_dict(request.json["pron_dict_name"])
+        model.link_pron_dict(pron_dict)
+        app.config["CURRENT_PRON_DICT"] = pron_dict
+    if "engine" in request.json and request.json["engine"] == "hft":
+        pass
+    model.build_structure()
+    app.config["CURRENT_MODEL"] = model
+    data = {"config": model.config._load()}
+    return jsonify({"status": 200, "data": data})
 
 
-@bp.route("/load", methods=['POST'])
+@bp.route("/load", methods=["POST"])
 def load():
-    kaldi: KaldiInterface = app.config['INTERFACE']
-    model = kaldi.get_model(request.json["name"])
-    # set the dataset to match the model
-    app.config['CURRENT_DATASET'] = model.dataset
-    app.config['CURRENT_PRON_DICT'] = model.pron_dict
-    app.config['CURRENT_MODEL'] = model
-    data = {
-        "config": model.config._load()
-    }
-    return jsonify({
-        "status": 200,
-        "data": data
-    })
+    interface = app.config["INTERFACE"]
+    model = interface.get_model(request.json["name"])
+    app.config["CURRENT_DATASET"] = model.dataset
+    app.config["CURRENT_PRON_DICT"] = model.pron_dict
+    app.config["CURRENT_MODEL"] = model
+    data = {"config": model.config._load(), "log": model.log}
+    return jsonify({"status": 200, "data": data})
 
 
-@bp.route("/list", methods=['GET'])
+@bp.route("/delete", methods=["POST"])
+def delete():
+    interface = app.config["INTERFACE"]
+    mname = request.json["name"]
+    interface.remove_model(mname)
+    data = {"list": interface.list_models_verbose(), "name": ""}
+    return jsonify({"status": 200, "data": data})
+
+
+@bp.route("/list", methods=["GET"])
 def list_existing():
-    kaldi: KaldiInterface = app.config['INTERFACE']
-    fake_results = {}
+    interface = app.config["INTERFACE"]
     data = {
-        "list": [{
-                'name': model['name'],
-                'results': fake_results,
-                'dataset_name': model['dataset_name'],
-                'pron_dict_name': model['pron_dict_name']
-                } for model in kaldi.list_models_verbose()]
+        "list": [
+            {
+                "name": model["name"],
+                "dataset_name": model["dataset_name"],
+                "engine_name": model["engine_name"],
+                "pron_dict_name": model["pron_dict_name"],
+                "status": model["status"],
+                "results": model["results"],
+            }
+            for model in interface.list_models_verbose()
+        ]
     }
-    return jsonify({
-        "status": 200,
-        "data": data
-    })
+    return jsonify({"status": 200, "data": data})
 
 
-@bp.route("/settings", methods=['POST'])
+@bp.route("/settings", methods=["POST"])
 def settings():
-    model = app.config['CURRENT_MODEL']
-    if model is None:
-        return jsonify({"status":404, "data": "No current model exists (perhaps create one first)"})
-    if request.method == 'POST':
-        model.ngram = request.json['ngram']
-    data = {
-        "settings":{
-            "ngram": model.ngram
-        }
-    }
-    return jsonify({
-        "status": 200,
-        "data": data
-    })
+    def setup(model: Model):
+        model.settings = request.json["settings"]
+
+    def build_data(model: Model):
+        return {"settings": model.settings}
+
+    return _model_response(setup=setup, build_data=build_data)
 
 
-@bp.route("/train", methods=['GET'])
+@bp.route("/train", methods=["GET"])
 def train():
-    model: Model = app.config['CURRENT_MODEL']
-    if model is None:
-        return jsonify({"status":404, "data": "No current model exists (perhaps create one first)"})
-    model.train(on_complete=lambda: print("Training complete!"))
-    data = {
-        "status": model.status
-    }
-    return jsonify({
-        "status": 200,
-        "data": data
-    })
+    def setup(model: Model):
+        model.train(on_complete=lambda: logger.info("Trained model!"))
+
+    def build_data(model: Model):
+        return {"status": model.status, "stage_status": model.stage_status}
+
+    return _model_response(setup=setup, build_data=build_data)
 
 
-@bp.route("/status", methods=['GET'])
+@bp.route("/status", methods=["GET"])
 def status():
-    model: Model = app.config['CURRENT_MODEL']
-    if model is None:
-        return jsonify({"status":404, "data": "No current model exists (perhaps create one first)"})
-    data = {
-        "status": model.status
-    }
-    return jsonify({
-        "status": 200,
-        "data": data
-    })
+    def build_data(model: Model):
+        return {"status": model.status, "stage_status": model.stage_status}
+
+    return _model_response(build_data=build_data)
 
 
-@bp.route("/results", methods=['GET'])
+@bp.route("/log", methods=["GET"])
+def log():
+    def build_data(model: Model):
+        return {"log": model.log}
+
+    return _model_response(build_data=build_data)
+
+
+@bp.route("/results", methods=["GET"])
 def results():
-    model: Model = app.config['CURRENT_MODEL']
+    model: Model = app.config["CURRENT_MODEL"]
     if model is None:
-        return jsonify({"status":404, "data": "No current model exists (perhaps create one first)"})
-    wer_lines = []
-    log_file = Path('/elpis/state/tmp_log.txt')
-    results = {}
-    if log_file.exists():
-        with log_file.open() as fin:
-            for line in reversed(list(fin)):
-                line = line.rstrip()
-                if "%WER" in line:
-                    # use line to sort by best val
-                    line_r = line.replace('%WER ', '')
-                    wer_lines.append(line_r)
-            wer_lines.sort(reverse = True)
-            line = wer_lines[0]
-            line_split = line.split(None, 1)
-            wer = line_split[0]
-            line_results = line_split[1]
-            line_results = line_results.replace('[','')
-            line_results = line_results.replace(']','')
-            results_split = line_results.split(',')
-            count_val = results_split[0].strip()
-            ins_val = results_split[1].replace(' ins','').strip()
-            del_val = results_split[2].replace(' del','').strip()
-            sub_val = results_split[3].replace(' sub','').strip()
-            results = {'wer':wer, 'count_val':count_val, 'ins_val':ins_val, 'del_val':del_val, 'sub_val':sub_val}
-            print(results)
-    else:
-        return jsonify({"status":404, "data": "No log file was found, couldn't parse the results"})
-    data = {
-        "results": results
-    }
-    return jsonify({
-        "status": 200,
-        "data": data
-    })
+        return jsonify(MISSING_MODEL_RESPONSE)
+    try:
+        results = model.get_train_results()
+    except FileNotFoundError:
+        logger.error("Results file not found.")
+        return jsonify(MISSING_LOG_RESPONSE)
+    data = {"results": results}
+    return jsonify({"status": 200, "data": data})
+
+
+def _model_response(
+    build_data: Callable[[Model], Dict],
+    setup: Callable[[Model], None] = (lambda model: None),
+):
+    """Sets up the model and returns the requested data, based on a supplied
+    function to extract the data from the model, with an optional setup function
+    that will run first.
+
+    Parameters:
+        build_data: A function to extract the necessary information from the model.
+        setup: An optional function to run before the data transformation.
+
+    Returns:
+        A 200 response with the supplied data, if successful.
+    """
+    model: Model = app.config["CURRENT_MODEL"]
+    if not model:
+        return jsonify(MISSING_MODEL_RESPONSE)
+
+    setup(model)
+    data = build_data(model)
+
+    return jsonify({"status": 200, "data": data})

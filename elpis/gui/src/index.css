@@ -1,0 +1,349 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+.dropzone {
+    padding: 3em;
+    border: 3px dotted #aaa;
+    border-radius: 1rem;
+}
+
+.dropzone_active {
+    background-color: orange;
+}
+
+.status {
+    margin-top: 1em;
+}
+
+.logo {
+    height: 50px !important;
+    width: auto !important;
+    display: block;
+}
+
+.train-log {
+    width: 100%;
+}
+.compiled-log {
+    font-family: monospace;
+    font-size: 0.8em;
+    line-height: 1.3em;
+    height: 300px;
+    white-space: pre;
+}
+.compiled-log > div {
+    padding-bottom: 1.2em;
+    white-space: break-spaces;
+}
+
+.accordion {
+    margin-bottom: 2rem;
+}
+
+.ui.styled.accordion .content.accordion_log {
+    padding: 0 2em 1em 2em !important;
+    overflow_wrap: anywhere;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.kaldi-log {
+    height: 200px;
+    width: 100%;
+    border: 1px solid #aaa;
+}
+
+.dataset-list {
+    padding-left: 0;
+}
+
+.dataset-list li {
+    padding: 0.5rem;
+    list-style-type: none;
+}
+
+.button.current {
+    background-color: #D3A0F0 !important;
+}
+
+.current {
+    background-color: #D3A0F0 !important;
+}
+
+.ReactVirtualized__Grid__innerScrollContainer {
+    max-height: none !important;
+    min-height: 100px !important;
+}
+
+li.no-lst {
+    list-style-type: none
+}
+
+.ui.form .error,
+.ui.message .content {
+    white-space: pre-line;
+}
+
+.bug {
+    color: #333;
+    font-style: italic;
+}
+
+textarea.lexicon {
+    font-family: monospace;
+    width: 100%;
+    min-height: 20em;
+}
+
+.ui.button.add {
+    margin: 1em;
+}
+
+.right {
+    float: right;
+    display: flex;
+    align-items: center;
+}
+
+
+label.pad-right,
+.label.pad-right {
+    margin-right: 0.5em
+}
+
+.label {
+    float: left;
+}
+
+.form-wrapper {
+    margin: 1em 0 2em 0;
+}
+
+.error-message {
+    color: indianred;
+}
+
+.ui.table.settings .description {
+    font-weight: normal;
+}
+
+.stages {
+    margin-top: 1em;
+}
+
+.stage .divider {
+    margin: 0 0.5em
+}
+
+.file-list {
+    max-height: 300px;
+    overflow-y: scroll;
+    border: 1px solid #aaa;
+    padding: 1em;
+}
+
+.top-nav {
+    font-weight: 400;
+    border-width: 0 !important;
+    box-shadow: none !important;
+}
+
+.top-nav .ui.selection.dropdown {
+    min-width: 8em;
+}
+
+.keep-line-breaks {
+    white-space: pre-line;
+}
+
+.dev-toolbar {
+    background: repeating-linear-gradient(
+        45deg,
+        #F5F6CE,
+        #F5F6CE 10px,
+        #F8EFFB 10px,
+        #F8EFFB 20px
+    );
+    padding: 6px;
+    min-width: 200px;
+    float: left;
+    border-radius: 12px;
+    margin-right: 1em;
+}
+
+.dev-toolbar p {
+    padding: 0;
+    margin: 0;
+}
+
+.train-description,
+.transcription-description {
+    margin-bottom: 1em;
+}
+
+.train-description {
+    padding-bottom: 2em !important;
+}
+
+.choose-engine .row,
+.welcome-options .row {
+    display: flex !important;
+    flex-direction: row;
+    align-items: center;
+    margin: 2em 0;
+}
+
+.choose-engine .left-col,
+.welcome-options .left-col {
+    display: flex !important;
+    align-items: center;
+}
+
+
+.welcome-options .train-button a,
+.welcome-options .transcribe-button a {
+    padding: 1em;
+    margin-right: 2em;
+}
+
+.choose-engine {
+    margin-top: 2em;
+}
+
+.choose-engine-button {
+    margin: 0 1em;
+}
+
+.results-title {
+    font-weight: bold;
+}
+
+.section-description {
+    margin: 1em;
+}
+
+.engine-select {
+    margin-left: 1em;
+}
+
+.ui.segment.top-nav {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+.top-nav .item {
+    padding-top: 0;
+    height: 100px;
+}
+
+.top-nav .current-engine {
+    margin: 0 1em
+}
+
+.current-engine-dot {
+    width: 80px;
+    height: 80px;
+    background-color: #fbfdef;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1em;
+    box-shadow: 0 0 0 1px #8abc1e inset, 0 0 0 0 transparent;
+    color: #8abc1e;
+}
+
+.choose-dataset button {
+    max-width: 300px;
+}
+
+.file-button, .pron-dict-button {
+    width: 99%;
+}
+
+.dataset-button {
+    width: 50%;
+}
+
+.model-button {
+    width: 80%;
+}
+
+.file-label, .dataset-label, .pron-dict-label, .model-label {
+    /* width: 90%; results in strange behaviour and i don't know why */
+    min-width: 90%;
+    max-width: 90%;
+}
+
+.file-truncate, .dataset-truncate, .pron-dict-truncate, .model-truncate {
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.training_settings .ui.form tr {
+    padding: 0.5em 0;
+}
+.training_settings .ui.form tr {
+    padding: 0 0.5em;
+}
+.training_settings .settings_debug {
+    display: flex;
+    align-items: center;
+}
+.training_settings .settings_debug input {
+    width: 80px !important;
+}
+.data_split_inputs div {
+    display: flex;
+    align-items: center;
+}
+.data_split_inputs span {
+    padding-left: 1em;
+    font-style: italic;
+}
+
+
+/* Container for opacity toggle */
+.conf-tools {
+    text-align: right;
+}
+
+/* Transcription text is output in individual p elements for opacity styling based on confidence values,
+    so wrap them into a sentence for readability */
+.transcription-text {
+    display: flex;
+    flex-wrap: wrap;
+}
+.transcription-text p {
+    margin-right: 0.3em;
+    word-break: break-all;
+}
+
+/* Override confidence opacity setting on transcription text */
+.transcription-text.ignore-confidence-opacity p {
+    opacity: 1 !important;
+}
+
+/* Change toggle checkbox to purple */
+.ui.toggle.checkbox input:focus:checked~.box:before,
+.ui.toggle.checkbox input:focus:checked~label:before {
+    background-color: #D3A0F0 !important;
+}
+.ui.toggle.checkbox input:checked ~ .box:before,
+.ui.toggle.checkbox input:checked ~ label:before {
+    background-color: #D3A0F0 !important;
+}
+.ui.toggle.checkbox .box:before, .ui.toggle.checkbox label:before {
+    background-color: grey;
+}
